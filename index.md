@@ -1,37 +1,50 @@
-## Welcome to GitHub Pages
+# HeapDL
+Heaps Don't Lie! Published in PACM PL OOPSLA (2017) ([pdf](http://www.nevillegrech.com/heapdl-oopsla17.pdf))
 
-You can use the [editor on GitHub](https://github.com/plast-lab/heapdl-site/edit/master/index.md) to maintain and preview the content for your website in Markdown files.
+# Using HeapDL in standalone mode
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
-
-### Markdown
-
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
+```
+$ ./gradlew fatjar
+$ java -jar build/libs/HeapDL-all-1.0.3.jar file.hprof --out output-dir
 ```
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
+# Using HeapDL as a library
+````
+repositories {
+        jcenter()
+        maven { url "https://jitpack.io" }
+   }
+   dependencies {
+         compile 'com.github.plast-lab:HeapDL:master-SNAPSHOT'
+   }
+````
 
-### Jekyll Themes
+# Generating a heap snapshot for use with HeapDL
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/plast-lab/heapdl-site/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+## OpenJDK/IBM JDK
 
-### Support or Contact
+To take a heap snapshot of a running program (`Program.jar`) on
+program exit, run:
 
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+```
+java -agentlib:hprof=heap=dump,format=b,depth=8 -jar Program.jar
+```
+
+## Android
+
+To take a heap snapshot an Android app running on a device (or
+emulator) bridged by `adb`, run the following
+(`APP_PACKAGE`/`MAIN_ACTIVITY` are the names of the application
+package and the main app activity to launch respectively):
+
+```
+# Start app.
+adb shell am start --track-allocation $APP_PACKAGE/$MAIN_ACTIVITY
+
+# When ready, take heap snapshot (we assume $2 is the PID field of ps).
+adb shell am dumpheap `adb shell ps | grep $APP_PACKAGE\$ | awk '{print $2}'` /data/local/tmp/$APP_PACKAGE.android.hprof
+
+# Download and convert.
+adb pull /data/local/tmp/$APP_PACKAGE.android.hprof .
+hprof-conv $APP_PACKAGE.android.hprof $APP_PACKAGE.hprof
+```
